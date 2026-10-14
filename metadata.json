@@ -1,0 +1,6 @@
+{
+  "name": "VidaLeve - Emagrecimento Saudável",
+  "description": "Plataforma completa de emagrecimento consciente, calculadora calórica, guia nutricional e metas de perda de peso.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
