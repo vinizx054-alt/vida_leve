@@ -19,4 +19,6 @@ export interface SiteConfig {
   featuresList: string[];
   adminUsername?: string;
   adminPassword?: string;
+  vipGroupUrl?: string;
+  memberWelcomeMessage?: string;
 }

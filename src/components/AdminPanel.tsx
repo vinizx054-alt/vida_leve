@@ -16,7 +16,11 @@ import {
   User,
   KeyRound,
   LogOut,
-  AlertCircle
+  AlertCircle,
+  GraduationCap,
+  Copy,
+  Check,
+  Eye
 } from 'lucide-react';
 import { SiteConfig } from '../types';
 import { CaktoLogo } from './CaktoLogo';
@@ -27,6 +31,7 @@ interface AdminPanelProps {
   config: SiteConfig;
   onSave: (newConfig: SiteConfig) => void;
   onReset: () => void;
+  onPreviewMemberArea?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -34,7 +39,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onClose,
   config,
   onSave,
-  onReset
+  onReset,
+  onPreviewMemberArea
 }) => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,8 +50,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Form State
   const [formData, setFormData] = useState<SiteConfig>({ ...config });
-  const [activeTab, setActiveTab] = useState<'checkout' | 'pricing' | 'content' | 'bonus' | 'security'>('checkout');
+  const [activeTab, setActiveTab] = useState<'checkout' | 'pricing' | 'content' | 'bonus' | 'member' | 'security'>('checkout');
   const [showToast, setShowToast] = useState(false);
+  const [copiedMemberUrl, setCopiedMemberUrl] = useState(false);
 
   // Sync formData when config changes
   React.useEffect(() => {
@@ -56,6 +63,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const validUsername = config.adminUsername || 'admin';
   const validPassword = config.adminPassword || '123';
+
+  // Compute the direct link to the VIP Member Area
+  const postPurchaseUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/area-vip`
+    : 'https://seu-site.com/area-vip';
+
+  const salesPageUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/`
+    : 'https://seu-site.com/';
+
+  const copyPostPurchaseUrl = () => {
+    navigator.clipboard.writeText(postPurchaseUrl);
+    setCopiedMemberUrl(true);
+    setTimeout(() => setCopiedMemberUrl(false), 2500);
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,7 +180,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
               <span className="font-semibold text-slate-700 block mb-0.5">Acesso Padrão Inicial:</span>
               <span>Usuário: <code className="bg-slate-200 text-slate-800 px-1 py-0.5 rounded font-mono font-bold">admin</code> • Senha: <code className="bg-slate-200 text-slate-800 px-1 py-0.5 rounded font-mono font-bold">123</code></span>
-              <span className="block text-[10px] text-slate-400 mt-1">(Você pode alterar seu usuário e senha dentro do painel)</span>
+              <span className="block text-[10px] text-slate-400 mt-1">(Você pode alterar seu usuário e senha na aba Segurança)</span>
             </div>
 
             <div className="pt-2 flex items-center gap-2">
@@ -224,6 +246,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {[
             { id: 'checkout', label: 'Link Cakto & Contato', icon: LinkIcon },
             { id: 'pricing', label: 'Preços & Oferta', icon: DollarSign },
+            { id: 'member', label: 'Área Pós-Venda (Alunos)', icon: GraduationCap },
             { id: 'content', label: 'Textos & Chamadas', icon: Type },
             { id: 'bonus', label: 'Bônus & Gatilhos', icon: Gift },
             { id: 'security', label: 'Senha & Segurança', icon: KeyRound }
@@ -327,6 +350,118 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'member' && (
+            <div className="space-y-5">
+              <div className="p-4 rounded-2xl bg-teal-50 border border-teal-200 text-teal-950">
+                <div className="flex items-start gap-3">
+                  <GraduationCap className="w-6 h-6 text-teal-600 shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold text-sm">Site Final do Aluno (Pós-Pagamento na Cakto)</p>
+                    <p>
+                      Quando a pessoa pagar na Cakto, você configura na Cakto para redirecionar ela diretamente para o link abaixo!
+                      Ela terá acesso aos cardápios, calculadora liberada sem bloqueio, lista de compras e downloads.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Links Box: Both Sales Page & VIP Member Area */}
+              <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-4">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block">
+                    1. Link da Área VIP de Alunas (Colocar na Cakto pós-compra):
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={postPurchaseUrl}
+                      className="flex-1 bg-slate-800 border border-slate-700 px-3 py-2 rounded-xl text-xs font-mono text-emerald-300 outline-none select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={copyPostPurchaseUrl}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                    >
+                      {copiedMemberUrl ? <Check className="w-4 h-4 text-slate-950" /> : <Copy className="w-4 h-4" />}
+                      <span>{copiedMemberUrl ? 'Copiado!' : 'Copiar /area-vip'}</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    👉 <strong>Na Cakto:</strong> Configure este link no campo <em>"URL de Obrigado / Redirecionamento da Compra"</em>.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 space-y-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                    2. Link da Página de Vendas (Onde a pessoa compra por R$ 29,90):
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={salesPageUrl}
+                      className="flex-1 bg-slate-800 border border-slate-700 px-3 py-2 rounded-xl text-xs font-mono text-slate-300 outline-none select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(salesPageUrl);
+                        alert('Link da Página de Vendas copiado!');
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Copiar Link Vendas</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview Button */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onPreviewMemberArea?.();
+                  }}
+                  className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>Visualizar Agora Como a Aluna Vê o Site Final</span>
+                </button>
+              </div>
+
+              {/* VIP Group URL */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Link de Convite do Grupo VIP no WhatsApp / Telegram
+                </label>
+                <input
+                  type="url"
+                  value={formData.vipGroupUrl || ''}
+                  onChange={(e) => handleChange('vipGroupUrl', e.target.value)}
+                  placeholder="https://chat.whatsapp.com/seu-grupo-vip"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Welcome message */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Mensagem de Boas-Vindas da Aluna
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.memberWelcomeMessage || ''}
+                  onChange={(e) => handleChange('memberWelcomeMessage', e.target.value)}
+                  className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                />
               </div>
             </div>
           )}

@@ -31,5 +31,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     'Acesso imediato no e-mail logo após a confirmação pela Cakto'
   ],
   adminUsername: 'admin',
-  adminPassword: '123'
+  adminPassword: '123',
+  vipGroupUrl: 'https://chat.whatsapp.com/seu-grupo-vip-alunas',
+  memberWelcomeMessage: 'Parabéns pela sua decisão! Seu acesso ao Método VidaLeve está 100% liberado. Siga o passo a passo abaixo para começar a ver resultados já nos primeiros 7 dias.'
 };

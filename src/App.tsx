@@ -28,21 +28,78 @@ import {
   Check,
   Bell,
   X,
-  Target
+  Target,
+  GraduationCap
 } from 'lucide-react';
 import { SiteConfig } from './types';
 import { DEFAULT_SITE_CONFIG } from './defaultConfig';
 import { AdminPanel } from './components/AdminPanel';
 import { CaktoLogo } from './components/CaktoLogo';
+import { MemberArea } from './components/MemberArea';
+
+// Helper to check if current URL points to the VIP area
+const checkIsVipRoute = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+
+  return (
+    path.includes('/area-vip') ||
+    path.includes('/vip') ||
+    path.includes('/membros') ||
+    path.includes('/aluna') ||
+    search.includes('area=vip') ||
+    search.includes('acesso=liberado') ||
+    search.includes('aluno=true') ||
+    hash.includes('area-vip') ||
+    hash.includes('vip')
+  );
+};
 
 export default function App() {
+  // Navigation Route State (Sales Page vs Member Area)
+  const [isMemberArea, setIsMemberArea] = useState<boolean>(checkIsVipRoute);
+
+  // Sync with browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsMemberArea(checkIsVipRoute());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Switch to Member Area with clean URL path '/area-vip'
+  const navigateToVip = () => {
+    setIsMemberArea(true);
+    try {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/area-vip') {
+        window.history.pushState({}, '', '/area-vip');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Switch to Sales Page with clean root URL '/'
+  const navigateToSales = () => {
+    setIsMemberArea(false);
+    try {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.pushState({}, '', '/');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Load config from localStorage or fallback to default
   const [config, setConfig] = useState<SiteConfig>(() => {
     try {
       const saved = localStorage.getItem('vidaleve_site_config');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Migrate old texts or prices if still saved in user browser
         if (parsed.ctaButtonText === 'Quero Garantir Minha Vaga na Cakito') {
           parsed.ctaButtonText = 'Quero Começar Agora';
         }
@@ -110,7 +167,7 @@ export default function App() {
   const [currentSale, setCurrentSale] = useState<{ name: string; city: string; time: string } | null>(null);
 
   useEffect(() => {
-    if (!config.showRecentSalesPopup) {
+    if (!config.showRecentSalesPopup || isMemberArea) {
       setCurrentSale(null);
       return;
     }
@@ -134,10 +191,10 @@ export default function App() {
     }, 14000);
 
     return () => clearInterval(interval);
-  }, [config.showRecentSalesPopup]);
+  }, [config.showRecentSalesPopup, isMemberArea]);
 
   // Calculator State
-  const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [gender, setGender] = useState<'female' | 'male'>('female');
   const [age, setAge] = useState<number>(30);
   const [weight, setWeight] = useState<number>(78);
   const [height, setHeight] = useState<number>(168);
@@ -226,6 +283,29 @@ export default function App() {
     config.whatsappMessage
   )}`;
 
+  // IF ROUTE IS '/area-vip', RENDER THE POST-PURCHASE MEMBER SITE WITH ITS OWN ADMIN PANEL:
+  if (isMemberArea) {
+    return (
+      <>
+        <MemberArea
+          config={config}
+          onBackToSales={navigateToSales}
+          onOpenAdmin={() => setIsAdminOpen(true)}
+        />
+        {/* Admin Panel Modal directly accessible inside the VIP area too */}
+        <AdminPanel
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+          config={config}
+          onSave={handleSaveConfig}
+          onReset={handleResetConfig}
+          onPreviewMemberArea={navigateToVip}
+        />
+      </>
+    );
+  }
+
+  // OTHERWISE, RENDER THE SALES SITE:
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-emerald-100 selection:text-emerald-900">
       {/* Top Urgency / Announcement Bar */}
@@ -243,13 +323,25 @@ export default function App() {
                 <span>Restam {formatCountdown(timeLeft)}</span>
               </div>
             )}
+
+            {/* Direct Link to VIP Area */}
+            <button
+              onClick={navigateToVip}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/30 hover:bg-emerald-500/50 text-white text-xs font-bold transition-colors cursor-pointer border border-emerald-400/40"
+              title="Acessar o link da Área VIP (/area-vip)"
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Link Área VIP</span>
+            </button>
+
+            {/* Admin Panel Button */}
             <button
               onClick={() => setIsAdminOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-100 hover:text-white text-xs font-semibold transition-colors cursor-pointer border border-white/20"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-100 hover:text-white text-xs font-semibold transition-colors cursor-pointer border border-white/20"
               title="Acesso com usuário e senha"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Painel Admin</span>
+              <span className="hidden md:inline">Painel Admin</span>
             </button>
           </div>
         </div>
@@ -284,6 +376,14 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={navigateToVip}
+              className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-emerald-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer border border-slate-200"
+            >
+              <GraduationCap className="w-4 h-4 text-emerald-600" />
+              <span>Link Área VIP</span>
+            </button>
+
             <a
               href={config.cakitoCheckoutUrl}
               target="_blank"
@@ -988,7 +1088,7 @@ export default function App() {
           {[
             {
               q: 'Como recebo o acesso após o pagamento na Cakto?',
-              a: 'O envio é imediato e 100% automático! Assim que a compra for aprovada pela Cakto, você recebe em seu e-mail o link exclusivo de acesso aos cardápios, calculadoras e bônus.'
+              a: 'O envio é imediato e 100% automático! Você recebe o link exclusivo da Área VIP (/area-vip) com seus cardápios, calculadora liberada e bônus.'
             },
             {
               q: 'Preciso cortar o carboidrato para emagrecer?',
@@ -1027,11 +1127,18 @@ export default function App() {
 
           <div className="flex items-center gap-6 text-xs">
             <button
-              onClick={() => setIsAdminOpen(true)}
+              onClick={navigateToVip}
               className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1.5 cursor-pointer"
             >
+              <GraduationCap className="w-3.5 h-3.5" />
+              Link da Área VIP (/area-vip)
+            </button>
+            <button
+              onClick={() => setIsAdminOpen(true)}
+              className="text-slate-400 hover:text-white font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
               <Lock className="w-3.5 h-3.5" />
-              Painel do Administrador
+              Painel Admin
             </button>
             <a href="#calculadora" className="hover:text-white transition-colors">Calculadora</a>
             <a href="#cardapio" className="hover:text-white transition-colors">Cardápios</a>
@@ -1169,6 +1276,7 @@ export default function App() {
         config={config}
         onSave={handleSaveConfig}
         onReset={handleResetConfig}
+        onPreviewMemberArea={navigateToVip}
       />
     </div>
   );
